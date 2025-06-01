@@ -15,7 +15,7 @@ Reflect IQ integrates computer vision and sensor fusion to continuously monitor 
 
 ## Software Components
 
-- ROS 2 (Humble/Foxy)
+- ROS 2 
 - OpenCV for image processing
 - YOLOv5 for object detection
 - Custom ROS 2 nodes for:
