@@ -7,14 +7,11 @@ import numpy as np
 
 class ImagePublisher(Node):
     def __init__(self):
-        super().__init__('image_publisher')
+        super().__init__('camera_pub_node')
         self.publisher_ = self.create_publisher(CompressedImage, '/camera/image/compressed', 10)
-        self.timer = self.create_timer(0.03, self.publish_frame)  # حوالي 30 FPS
-        self.cap = cv2.VideoCapture(0)  # الكاميرا الأولى
-
-        # JPEG compression quality
-        self.encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 80]  # 0-100
-
+        self.timer = self.create_timer(0.03, self.publish_frame)
+        self.cap = cv2.VideoCapture(0)
+        self.encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 80]
         self.get_logger().info('Publishing camera frames on /camera/image/compressed')
 
     def publish_frame(self):
@@ -22,12 +19,10 @@ class ImagePublisher(Node):
         if not ret:
             self.get_logger().warn("Failed to grab frame")
             return
-
         msg = CompressedImage()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.format = "jpeg"
         msg.data = np.array(cv2.imencode('.jpg', frame, self.encode_param)[1]).tobytes()
-
         self.publisher_.publish(msg)
 
     def __del__(self):
