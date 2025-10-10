@@ -10,7 +10,7 @@ from threading import Thread, Lock
 
 class CompressedImageSubscriber(Node):
     def __init__(self):
-        super().__init__('compressed_image_subscriber')
+        super().__init__('camera_sub_node')
 
         self.subscription = self.create_subscription(
             CompressedImage,
