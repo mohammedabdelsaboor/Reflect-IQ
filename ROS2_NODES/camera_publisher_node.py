@@ -1,57 +1,39 @@
-#!/usr/bin/env python3
+import cv2
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
-import cv2
-
+from sensor_msgs.msg import CompressedImage
+import time
 
 class CameraPublisher(Node):
     def __init__(self):
         super().__init__('camera_pub_node')
+        self.publisher_ = self.create_publisher(CompressedImage, '/camera/image/compressed', 10)
+        self.cap = cv2.VideoCapture(0)
+        self.cap.set(cv2.CAP_PROP_FPS, 30)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        self.rate = self.create_rate(30)  # 30 FPS
+        self.run()
 
-        self.publisher_ = self.create_publisher(Image, '/camera/image_raw', 10)
-        self.timer = self.create_timer(0.1, self.publish_image) 
-        self.bridge = CvBridge() 
-        self.cap = cv2.VideoCapture(0) 
-
-        if not self.cap.isOpened():
-            self.get_logger().error("Unable to open the camera!")
-            rclpy.shutdown()
-
-    def publish_image(self):
-        ret, frame = self.cap.read()
-        if not ret:
-            self.get_logger().error("Failed to capture image!")
-            return
-
-        image_message = self.bridge.cv2_to_imgmsg(frame, encoding='bgr8')
-
-        self.publisher_.publish(image_message)
-        self.get_logger().info('Published image')
-
-    def __del__(self):
-        if self.cap.isOpened():
-            self.cap.release()
-
+    def run(self):
+        while rclpy.ok():
+            ret, frame = self.cap.read()
+            if not ret:
+                continue
+            msg = CompressedImage()
+            msg.format = "jpeg"
+            msg.data = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])[1].tobytes()
+            self.publisher_.publish(msg)
+            self.get_logger().info('Published compressed image')
+            self.rate.sleep()
 
 def main(args=None):
-    try:
-        rclpy.init(args=args)
-    except Exception as e:
-        print(f"Failed to initialize rclpy: {e}")
-        return
-
+    rclpy.init(args=args)
     node = CameraPublisher()
-
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
-
+    rclpy.spin(node)
+    node.cap.release()
+    node.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
